@@ -13,16 +13,8 @@
   import { getDatabase, ref, push, query, limitToLast, onChildAdded, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
-  var firebaseConfig = {
-    apiKey: "AIzaSyAK7O4WgMPZDWayAP1OTkQjPXHuTUfzaqs",
-    authDomain: "bloom-62d0b.firebaseapp.com",
-    databaseURL: "https://bloom-62d0b-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "bloom-62d0b",
-    storageBucket: "bloom-62d0b.firebasestorage.app",
-    messagingSenderId: "349389845116",
-    appId: "1:349389845116:web:0b48c902d402a03456cff9"
-  };
-
+// Zaciągamy konfigurację z zewnętrznego, ukrytego pliku
+  import { firebaseConfig } from "./firebase-config.js";
   try {
     var app = initializeApp(firebaseConfig);
     var db = getDatabase(app);
