@@ -12,13 +12,51 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
   import { getDatabase, ref, push, query, limitToLast, onChildAdded, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+<script type="module">
+  // Importujemy potrzebne funkcje Firebase
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  import { getDatabase, ref, push, query, limitToLast, onChildAdded, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
-// Zaciągamy konfigurację z zewnętrznego, ukrytego pliku
+  // IMPORTUJEMY KONFIGURACJĘ Z ZEWNĘTRZNEGO PLIKU
   import { firebaseConfig } from "./firebase-config.js";
+
   try {
-    var app = initializeApp(firebaseConfig);
-    var db = getDatabase(app);
-    var msgsRef = ref(db, "czat");
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const msgsRef = ref(db, "czat");
+
+    // Identyfikacja gościa
+    const myId = (() => {
+      try {
+        let k = sessionStorage.getItem("bloom_uid");
+        if(!k){ k = "u" + Math.random().toString(36).slice(2,8); sessionStorage.setItem("bloom_uid", k); }
+        return k;
+      } catch(e){ return "u" + Math.random().toString(36).slice(2,8); }
+    })();
+    const myName = "Gość " + myId.slice(-4).toUpperCase();
+
+    // API czatu
+    window.bloomChat = {
+      ready: true,
+      myId: myId,
+      myName: myName,
+      send: (text) => push(msgsRef, { uid: myId, name: myName, text: text, ts: serverTimestamp() }),
+      listen: (cb) => {
+        const q = query(msgsRef, limitToLast(100));
+        onChildAdded(q, (snap) => {
+          const v = snap.val() || {};
+          cb({ uid: v.uid, name: v.name, text: v.text, ts: v.ts });
+        });
+      }
+    };
+    window.dispatchEvent(new Event("bloomChatReady"));
+  } catch(err) {
+    console.error("Błąd Firebase:", err);
+    window.bloomChat = { ready: false };
+    window.dispatchEvent(new Event("bloomChatReady"));
+  }
+</script>
 
     // tożsamość gościa (stała w obrębie urządzenia/sesji)
     var myId = (function(){
