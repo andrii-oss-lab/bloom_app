@@ -700,29 +700,76 @@ lucide-react/dist/esm/lucide-react.mjs:
     state.view = view||"chat";
     overlay.style.display="flex";
     render();
+    if(window.__bloomPlaceFab) window.__bloomPlaceFab();
   }
-  function hide(){ overlay.style.display="none"; }
+  function hide(){
+    overlay.style.display="none";
+    if(window.__bloomPlaceFab) window.__bloomPlaceFab();
+  }
 
   // ====== WSTRZYKNIĘCIE PRZYCISKÓW DO NAWIGACJI APLIKACJI ======
   // Dolny pasek aplikacji ma zakładki tekstowe Feed/Polecane/Progres/Eventy/Profil.
   // Dokładamy pływający przycisk otwierający nakładkę (nie ruszamy bundla React).
   function addLauncher(){
     var fab = el("button", {
-      position:"fixed", right:"calc(50% - 184px)", bottom:"96px", zIndex:"9000",
-      width:"56px", height:"56px", borderRadius:"50%", border:"none",
+      position:"fixed", zIndex:"9000",
+      width:"52px", height:"52px", borderRadius:"50%", border:"none",
       background:T.green, color:"#fff", cursor:"pointer",
       boxShadow:"0 8px 22px rgba(76,175,125,.45)",
-      fontSize:"24px", display:"flex", alignItems:"center", justifyContent:"center"
+      fontSize:"23px", display:"flex", alignItems:"center", justifyContent:"center",
+      transition:"opacity .15s"
     }, "💬");
     fab.title="Czat i Q&A";
     fab.onclick=function(){ show("chat"); };
-    // responsywnie: gdy okno wąskie, trzymaj przy prawej krawędzi
-    function place(){
-      if(window.innerWidth < 420){ fab.style.right="18px"; }
-      else { fab.style.right="calc(50% - 184px)"; }
+
+    // Znajduje ekran telefonu w DOM (element z dużym border-radius i sporą wysokością),
+    // aby ustawić przycisk WEWNĄTRZ ramki, nad dolnym paskiem nawigacji aplikacji.
+    function findPhone(){
+      var divs=document.querySelectorAll("#root div");
+      var best=null, bestArea=0;
+      for(var i=0;i<divs.length;i++){
+        var d=divs[i], cs=getComputedStyle(d);
+        var br=parseFloat(cs.borderTopLeftRadius)||0;
+        var r=d.getBoundingClientRect();
+        // szukamy zaokrąglonego, wysokiego kontenera o szerokości ~ telefonu
+        if(br>=24 && r.height>=400 && r.width>=300 && r.width<=460){
+          var area=r.width*r.height;
+          if(area>bestArea){ bestArea=area; best=r; }
+        }
+      }
+      return best;
     }
-    window.addEventListener("resize", place); place();
+
+    function place(){
+      // gdy nakładka czatu otwarta, chowamy przycisk (jest już pasek Czat/Q&A)
+      if(overlay.style.display==="flex"){ fab.style.opacity="0"; fab.style.pointerEvents="none"; return; }
+      fab.style.opacity="1"; fab.style.pointerEvents="auto";
+
+      var p=findPhone();
+      if(p){
+        var navH=64;       // wysokość dolnego paska nawigacji aplikacji
+        var gap=14;        // odstęp przycisku od paska
+        var margin=14;     // odstęp od prawej krawędzi telefonu
+        var bottom = window.innerHeight - p.bottom + navH + gap;
+        var right  = window.innerWidth - p.right + margin;
+        fab.style.bottom = Math.max(bottom, 16) + "px";
+        fab.style.right  = Math.max(right, 16) + "px";
+      } else {
+        // awaryjnie: prawy dolny róg okna, wysoko nad krawędzią
+        fab.style.bottom = "120px";
+        fab.style.right  = (window.innerWidth < 440 ? 18 : Math.max((window.innerWidth-390)/2 + 16, 18)) + "px";
+      }
+    }
+
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    // przelicz pozycję okresowo (układ aplikacji może się zmieniać po interakcjach)
+    setInterval(place, 600);
+    place();
     document.body.appendChild(fab);
+
+    // udostępniamy place() do wywołania przy otwarciu/zamknięciu nakładki
+    window.__bloomPlaceFab = place;
   }
 
   document.body.appendChild(overlay);
